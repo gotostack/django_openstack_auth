@@ -92,3 +92,6 @@ msgstr "规则必须是字典或者规则的实例化对像，获取 %s 取代"
 
 msgid "Unable to retrieve authorized projects."
 msgstr "无法获取授权的项目。"
+
+msgid "Verification Code is incorrect."
+msgstr "验证码不正确."

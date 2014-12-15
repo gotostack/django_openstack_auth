@@ -14,6 +14,8 @@ import logging
 import re
 import time
 
+from verify_code import VerifyCode
+
 import django
 from django.conf import settings
 from django.contrib import auth
@@ -268,3 +270,9 @@ def switch_region(request, region_name,
     utils.set_response_cookie(response, 'services_region',
                               request.session['services_region'])
     return response
+
+
+@never_cache
+def code(request):
+    code = VerifyCode(request)
+    return code.get_verify_code()

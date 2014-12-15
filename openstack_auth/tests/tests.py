@@ -33,6 +33,7 @@ from openstack_auth.tests import data_v3
 from openstack_auth import user
 from openstack_auth import utils
 
+from openstack_auth import verify_code
 
 DEFAULT_DOMAIN = settings.OPENSTACK_KEYSTONE_DEFAULT_DOMAIN
 
@@ -46,6 +47,9 @@ class OpenStackAuthTestsMixin(object):
         ('internal', {'interface': 'internalURL'}),
         ('admin', {'interface': 'adminURL'})
     ]
+
+    verify_code = verify_code
+    icode = '-12'
 
     def _mock_unscoped_client(self, user):
         plugin = self._create_password_auth()
@@ -86,8 +90,14 @@ class OpenStackAuthTestsMixin(object):
                 session=mox.IsA(session.Session),
                 auth=plugin)
 
+    def _mock_verify_code_check(self)
+        self.mox.StubOutWithMock(self.verify_code.VerifyCode, "check")
+        self.verify_code.VerifyCode.check(mox.IgnoreArg(),
+                                          mox.IgnoreArg()).AndReturn(True)
+
     def get_form_data(self, user):
-        return {'region': settings.OPENSTACK_KEYSTONE_URL,
+        return {'verify_code': self.icode,
+                'region': settings.OPENSTACK_KEYSTONE_URL,
                 'domain': DEFAULT_DOMAIN,
                 'password': user.password,
                 'username': user.name}
@@ -174,6 +184,7 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_tenants(user, tenants)
         self._mock_scoped_client_for_tenant(unscoped, self.data.tenant_one.id)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -200,6 +211,8 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_tenants(user, tenants)
         self._mock_scoped_client_for_tenant(unscoped, self.data.tenant_one.id)
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
@@ -226,6 +239,8 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
 
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_tenants(user, tenants)
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
@@ -245,6 +260,7 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
 
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_tenants(user, [])
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -268,6 +284,7 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
 
         exc = keystone_exceptions.Unauthorized(401)
         self._mock_client_password_auth_failure(user.name, "invalid", exc)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -288,6 +305,8 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         exc = keystone_exceptions.ClientException(500)
         self._mock_client_password_auth_failure(user.name, user.password, exc)
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
@@ -339,6 +358,7 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
         self._mock_client_delete_token(user, unscoped.auth_token, endpoint)
         self._mock_scoped_client_for_tenant(scoped, tenant.id, url=endpoint,
                                             client=False)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -381,6 +401,7 @@ class OpenStackAuthTestsV2(OpenStackAuthTestsMixin, test.TestCase):
 
         self._mock_unscoped_client_list_tenants(user, tenants)
         self._mock_scoped_client_for_tenant(scoped, self.data.tenant_one.id)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -541,6 +562,7 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_projects(user, projects)
         self._mock_scoped_client_for_tenant(unscoped, self.data.project_one.id)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -564,12 +586,15 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_projects(user, projects)
         self._mock_scoped_client_for_tenant(unscoped, self.data.project_one.id)
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
 
         # GET the page to set the test cookie.
         response = self.client.get(url, form_data)
+
         self.assertEqual(response.status_code, 200)
 
         # POST to the page to log in.
@@ -583,6 +608,8 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
 
         self._mock_unscoped_client_list_projects(user, projects)
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
@@ -602,6 +629,8 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
 
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_projects(user, [])
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
@@ -644,6 +673,7 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
 
         exc = keystone_exceptions.Unauthorized(401)
         self._mock_client_password_auth_failure(user.name, "invalid", exc)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -663,6 +693,8 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         exc = keystone_exceptions.ClientException(500)
         self._mock_client_password_auth_failure(user.name, user.password, exc)
+        self._mock_verify_code_check()
+
         self.mox.ReplayAll()
 
         url = reverse('login')
@@ -696,6 +728,7 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
             project.id,
             url=sc.url_for(endpoint_type=et),
             client=False)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 
@@ -737,6 +770,7 @@ class OpenStackAuthTestsV3(OpenStackAuthTestsMixin, test.TestCase):
         form_data = self.get_form_data(user)
         self._mock_unscoped_client_list_projects(user, projects)
         self._mock_scoped_client_for_tenant(scoped, self.data.project_one.id)
+        self._mock_verify_code_check()
 
         self.mox.ReplayAll()
 

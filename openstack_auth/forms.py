@@ -23,6 +23,7 @@ from django.views.decorators.debug import sensitive_variables  # noqa
 from openstack_auth import exceptions
 from openstack_auth import utils
 
+from verify_code import VerifyCode
 
 LOG = logging.getLogger(__name__)
 
@@ -52,10 +53,14 @@ class Login(django_auth_forms.AuthenticationForm):
         widget=forms.TextInput(attrs={"autofocus": "autofocus"}))
     password = forms.CharField(label=_("Password"),
                                widget=forms.PasswordInput(render_value=False))
+    verify_code = forms.CharField(
+        label=_("Verification Code"),
+        widget=forms.TextInput(attrs={'class': 'verify_code_input'}))
 
     def __init__(self, *args, **kwargs):
         super(Login, self).__init__(*args, **kwargs)
-        self.fields.keyOrder = ['username', 'password', 'region']
+        self.fields.keyOrder = ['username', 'password', 'region',
+                                'verify_code']
         if getattr(settings,
                    'OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT',
                    False):
@@ -64,7 +69,8 @@ class Login(django_auth_forms.AuthenticationForm):
                 required=True,
                 widget=forms.TextInput(attrs={"autofocus": "autofocus"}))
             self.fields['username'].widget = forms.widgets.TextInput()
-            self.fields.keyOrder = ['domain', 'username', 'password', 'region']
+            self.fields.keyOrder = ['domain', 'username', 'password',
+                                    'region', 'verify_code']
         self.fields['region'].choices = self.get_region_choices()
         if len(self.fields['region'].choices) == 1:
             self.fields['region'].initial = self.fields['region'].choices[0][0]
@@ -109,10 +115,17 @@ class Login(django_auth_forms.AuthenticationForm):
         password = self.cleaned_data.get('password')
         region = self.cleaned_data.get('region')
         domain = self.cleaned_data.get('domain', default_domain)
+        verify_code = self.cleaned_data.get('verify_code')
 
         if not (username and password):
             # Don't authenticate, just let the other validators handle it.
             return self.cleaned_data
+
+        if not verify_code:
+            return self.cleaned_data
+        if not VerifyCode.check(self.request, verify_code):
+            msg = _('Verification Code is incorrect.')
+            raise forms.ValidationError(msg)
 
         try:
             self.user_cache = authenticate(request=self.request,
